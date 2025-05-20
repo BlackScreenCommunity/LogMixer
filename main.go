@@ -19,10 +19,10 @@ type LogBlock struct {
 var dateLayout = "2006-01-02 15:04:05,000"
 
 func isLogStart(line string) bool {
-	if len(line) < 23 {
+	if len(line) < len(dateLayout) {
 		return false
 	}
-	_, err := time.Parse(dateLayout, line[:23])
+	_, err := time.Parse(dateLayout, line[:len(dateLayout)])
 	return err == nil
 }
 
@@ -39,7 +39,10 @@ func processFile(path string, blocks *[]LogBlock) error {
 
 	for scanner.Scan() {
 		line := scanner.Text()
+
 		if isLogStart(line) {
+			line = addFilePathToLine(line, file.Name())
+
 			if currentBlock.Len() > 0 {
 				*blocks = append(*blocks, LogBlock{
 					Time: currentTime,
@@ -48,7 +51,7 @@ func processFile(path string, blocks *[]LogBlock) error {
 				currentBlock.Reset()
 			}
 
-			t, _ := time.Parse(dateLayout, line[:23])
+			t, _ := time.Parse(dateLayout, line[:len(dateLayout)])
 			currentTime = t
 			currentBlock.WriteString(line + "\n")
 		} else {
@@ -106,4 +109,15 @@ func main() {
 	writer.Flush()
 
 	fmt.Printf("Done. Written to %s\n", *outputFile)
+}
+
+func addFilePathToLine(line string, filepath string) string {
+	if len(line) > len(dateLayout) {
+		time := line[:len(dateLayout)]
+		time += " [" + filepath + "] "
+
+		return time + line[len(dateLayout):]
+	} else {
+		return line
+	}
 }
