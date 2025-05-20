@@ -113,10 +113,13 @@ func main() {
 
 func addFilePathToLine(line string, filepath string) string {
 	if len(line) > len(dateLayout) {
-		time := line[:len(dateLayout)]
-		time += " [" + filepath + "] "
+		prefix := line[:len(dateLayout)]
 
-		return time + line[len(dateLayout):]
+		pathChunks := strings.Split(filepath, "/")
+
+		prefix += " [" + strings.Join(pathChunks[1:], "/") + "] "
+
+		return prefix + line[len(dateLayout):]
 	} else {
 		return line
 	}
