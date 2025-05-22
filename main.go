@@ -16,7 +16,7 @@ type LogBlock struct {
 	Text string
 }
 
-var dateLayout = "2006-01-02 15:04:05,000"
+var dateTemplate = "2006-01-02 15:04:05,000"
 
 func main() {
 	inputDir := flag.String("path", "./logs", "Path to directory with log files")
@@ -32,6 +32,8 @@ func main() {
 	fmt.Printf("Done. Written to %s\n", *outputFile)
 }
 
+// Walks recusively through the directory with log files
+// Runs processing on each file
 func processFiles(inputDir *string, blocks *[]LogBlock) {
 	err := filepath.WalkDir(*inputDir, func(path string, d os.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
@@ -49,6 +51,9 @@ func processFiles(inputDir *string, blocks *[]LogBlock) {
 	}
 }
 
+// Reads file and devides it into message blocks
+// One block - one message
+// The result of this function is a list of message blocks
 func processFile(path string, blocks *[]LogBlock) error {
 	file, err := os.Open(path)
 	if err != nil {
@@ -68,10 +73,9 @@ func processFile(path string, blocks *[]LogBlock) error {
 
 			if currentBlock.Len() > 0 {
 				addBlockToCollection(blocks, currentTime, &currentBlock)
-
 			}
 
-			t, _ := time.Parse(dateLayout, line[:len(dateLayout)])
+			t, _ := time.Parse(dateTemplate, line[:len(dateTemplate)])
 			currentTime = t
 		}
 
@@ -90,16 +94,17 @@ func processFile(path string, blocks *[]LogBlock) error {
 // a start of log message
 // or it is a middle line of a message
 func isLogStart(line string) bool {
-	if len(line) < len(dateLayout) {
+	if len(line) < len(dateTemplate) {
 		return false
 	}
-	_, err := time.Parse(dateLayout, line[:len(dateLayout)])
+	_, err := time.Parse(dateTemplate, line[:len(dateTemplate)])
 	return err == nil
 }
 
+// Adds file name after timestamp in log line
 func addFilePathToLine(line string, filepath string) string {
-	if len(line) > len(dateLayout) {
-		prefix := line[:len(dateLayout)]
+	if len(line) > len(dateTemplate) {
+		prefix := line[:len(dateTemplate)]
 
 		pathChunks := strings.Split(filepath, "/")
 
@@ -108,13 +113,15 @@ func addFilePathToLine(line string, filepath string) string {
 		} else {
 			prefix += " [" + filepath + "] "
 		}
-		return prefix + line[len(dateLayout):]
+		return prefix + line[len(dateTemplate):]
 
 	} else {
 		return line
 	}
 }
 
+// Creates a block with a timestamp and log message
+// Adds block to the blocks collection
 func addBlockToCollection(blocks *[]LogBlock, currentTime time.Time, currentBlock *strings.Builder) {
 	*blocks = append(*blocks, LogBlock{
 		Time: currentTime,
@@ -123,12 +130,14 @@ func addBlockToCollection(blocks *[]LogBlock, currentTime time.Time, currentBloc
 	currentBlock.Reset()
 }
 
+// Sorts message block by time in ascending order
 func sortBlocksByTime(blocks []LogBlock) {
 	sort.Slice(blocks, func(i, j int) bool {
 		return blocks[i].Time.Before(blocks[j].Time)
 	})
 }
 
+// Write the message blocks collection to a file
 func writeCombinedLogFile(outputFile *string, blocks *[]LogBlock) {
 	out, err := os.Create(*outputFile)
 	if err != nil {
