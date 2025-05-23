@@ -62,6 +62,8 @@ func processFile(path string, blocks *[]LogBlock) error {
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
+	buf := make([]byte, 0, 64*1024)
+	scanner.Buffer(buf, 16*1024*1024)
 	var currentBlock strings.Builder
 	var currentTime time.Time
 
