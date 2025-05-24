@@ -27,9 +27,12 @@ func main() {
 
 	processFiles(inputDir, &blocks)
 	sortBlocksByTime(blocks)
-	writeCombinedLogFile(outputFile, &blocks)
-
-	fmt.Printf("Done. Written to %s\n", *outputFile)
+	err := writeCombinedLogFile(outputFile, &blocks)
+	if err == nil {
+		fmt.Printf("Done. Written to %s\n", *outputFile)
+	} else {
+		fmt.Printf("Error when saving result file  %s\n. %v", *outputFile, err)
+	}
 }
 
 // Walks recusively through the directory with log files
@@ -140,11 +143,11 @@ func sortBlocksByTime(blocks []LogBlock) {
 }
 
 // Write the message blocks collection to a file
-func writeCombinedLogFile(outputFile *string, blocks *[]LogBlock) {
+func writeCombinedLogFile(outputFile *string, blocks *[]LogBlock) error {
 	out, err := os.Create(*outputFile)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Cannot create output file: %v\n", err)
-		os.Exit(1)
+		return err
 	}
 	defer out.Close()
 
@@ -153,4 +156,6 @@ func writeCombinedLogFile(outputFile *string, blocks *[]LogBlock) {
 		writer.WriteString(b.Text)
 	}
 	writer.Flush()
+
+	return nil
 }
