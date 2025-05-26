@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -28,5 +29,35 @@ func TestWriteCombinedLogFile(t *testing.T) {
 
 	if string(content) != expected {
 		t.Errorf("unexpected file content.\nGot:\n%s\nExpected:\n%s", content, expected)
+	}
+}
+
+func TestGetFilters_FromFile(t *testing.T) {
+
+	yamlContent := `
+contains:
+  - Session started
+  - Heartbeat OK
+`
+	tmpFile, err := os.CreateTemp("", "filters-*.yaml")
+	if err != nil {
+		t.Fatalf("Failed to create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	_, err = tmpFile.Write([]byte(yamlContent))
+	if err != nil {
+		t.Fatalf("Failed to write to temp file: %v", err)
+	}
+	tmpFile.Close()
+
+	expected := FilterConfig{
+		Contains: []string{"Session started", "Heartbeat OK"},
+	}
+
+	result := getFilters(tmpFile.Name())
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("Expected: %+v, got: %+v", expected, result)
 	}
 }

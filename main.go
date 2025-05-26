@@ -4,16 +4,23 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 type LogBlock struct {
 	Time time.Time
 	Text string
+}
+
+type FilterConfig struct {
+	Contains []string `yaml:"contains"`
 }
 
 var dateTemplate = "2006-01-02 15:04:05,000"
@@ -24,7 +31,8 @@ func main() {
 	flag.Parse()
 
 	var blocks []LogBlock
-
+	filters := getFilters("~/.config/logmixer/filters.yaml")
+	fmt.Println(filters)
 	processFiles(inputDir, &blocks)
 	sortBlocksByTime(blocks)
 	err := writeCombinedLogFile(outputFile, &blocks)
@@ -72,7 +80,6 @@ func processFile(path string, blocks *[]LogBlock) error {
 
 	for scanner.Scan() {
 		line := scanner.Text()
-
 		if isLogStart(line) {
 			line = addFilePathToLine(line, file.Name())
 
@@ -93,6 +100,25 @@ func processFile(path string, blocks *[]LogBlock) error {
 	}
 
 	return scanner.Err()
+}
+
+func getFilters(filterFilePath string) FilterConfig {
+	var filters FilterConfig
+	data := readFiltersConfigFile(filterFilePath)
+	err := yaml.Unmarshal([]byte(data), &filters)
+	if err != nil {
+		log.Fatalf("cannot unmarshal data: %v", err)
+	}
+	return filters
+}
+
+func readFiltersConfigFile(filterFilePath string) string {
+	yamlData := `
+contains:
+  - Session started
+  - Heartbeat OK
+`
+	return yamlData
 }
 
 // Defines is line from a text file is
