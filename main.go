@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -28,12 +29,13 @@ var dateTemplate = "2006-01-02 15:04:05,000"
 func main() {
 	inputDir := flag.String("path", "./logs", "Path to directory with log files")
 	outputFile := flag.String("out", "combined_sorted.log", "Output file name")
+	filtersFilePath := flag.String("filters", UserHomeDir()+"/.config/logmixer/filters.yaml", "File with filtration rules")
 	flag.Parse()
 
 	var blocks []LogBlock
-	filters := getFilters("~/.config/logmixer/filters.yaml")
+	filters := getFilters(*filtersFilePath)
 	fmt.Println(filters)
-	processFiles(inputDir, &blocks)
+	processFiles(inputDir, &blocks, filters)
 	sortBlocksByTime(blocks)
 	err := writeCombinedLogFile(outputFile, &blocks)
 	if err == nil {
@@ -45,7 +47,7 @@ func main() {
 
 // Walks recusively through the directory with log files
 // Runs processing on each file
-func processFiles(inputDir *string, blocks *[]LogBlock) {
+func processFiles(inputDir *string, blocks *[]LogBlock, filters FilterConfig) {
 	err := filepath.WalkDir(*inputDir, func(path string, d os.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
 			return err
@@ -113,12 +115,24 @@ func getFilters(filterFilePath string) FilterConfig {
 }
 
 func readFiltersConfigFile(filterFilePath string) string {
-	yamlData := `
-contains:
-  - Session started
-  - Heartbeat OK
-`
-	return yamlData
+
+	yamlFile, err := os.ReadFile(filterFilePath)
+	if err != nil {
+		log.Printf("Error while filters config file reading   #%v ", err)
+	}
+
+	return string(yamlFile)
+}
+
+func UserHomeDir() string {
+	if runtime.GOOS == "windows" {
+		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
+		if home == "" {
+			home = os.Getenv("USERPROFILE")
+		}
+		return home
+	}
+	return os.Getenv("HOME")
 }
 
 // Defines is line from a text file is
