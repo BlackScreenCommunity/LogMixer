@@ -54,7 +54,7 @@ func processFiles(inputDir *string, blocks *[]LogBlock, filters FilterConfig) {
 		}
 		if strings.HasSuffix(d.Name(), ".log") || strings.HasSuffix(d.Name(), ".txt") {
 			fmt.Printf("Processing %s\n", path)
-			return processFile(path, blocks)
+			return processFile(path, blocks, filters)
 		}
 		return nil
 	})
@@ -67,7 +67,7 @@ func processFiles(inputDir *string, blocks *[]LogBlock, filters FilterConfig) {
 // Reads file and devides it into message blocks
 // One block - one message
 // The result of this function is a list of message blocks
-func processFile(path string, blocks *[]LogBlock) error {
+func processFile(path string, blocks *[]LogBlock, filters FilterConfig) error {
 	file, err := os.Open(path)
 	if err != nil {
 		return fmt.Errorf("cannot open file %s: %w", path, err)
@@ -82,11 +82,14 @@ func processFile(path string, blocks *[]LogBlock) error {
 
 	for scanner.Scan() {
 		line := scanner.Text()
+
 		if isLogStart(line) {
 			line = addFilePathToLine(line, file.Name())
 
 			if currentBlock.Len() > 0 {
-				addBlockToCollection(blocks, currentTime, &currentBlock)
+				if !getIsBlockNeedsToFilter(currentBlock, filters) {
+					addBlockToCollection(blocks, currentTime, &currentBlock)
+				}
 			}
 
 			t, _ := time.Parse(dateTemplate, line[:len(dateTemplate)])
@@ -98,10 +101,24 @@ func processFile(path string, blocks *[]LogBlock) error {
 	}
 
 	if currentBlock.Len() > 0 {
-		addBlockToCollection(blocks, currentTime, &currentBlock)
+		if !getIsBlockNeedsToFilter(currentBlock, filters) {
+			addBlockToCollection(blocks, currentTime, &currentBlock)
+		}
 	}
 
 	return scanner.Err()
+}
+
+func getIsBlockNeedsToFilter(currentBlock strings.Builder, filters FilterConfig) bool {
+	blockString := currentBlock.String()
+	for _, filterString := range filters.Contains {
+
+		if strings.Contains(blockString, filterString) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func getFilters(filterFilePath string) FilterConfig {

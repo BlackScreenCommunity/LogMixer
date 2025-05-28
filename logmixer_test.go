@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -59,5 +60,75 @@ contains:
 
 	if !reflect.DeepEqual(result, expected) {
 		t.Errorf("Expected: %+v, got: %+v", expected, result)
+	}
+}
+
+func TestGetIsBlockNeedsToFilter(t *testing.T) {
+	type args struct {
+		currentBlock strings.Builder
+		filters      FilterConfig
+	}
+	tests := []struct {
+		name     string
+		args     args
+		expected bool
+	}{
+		{
+			name: "Block contains one of the filters",
+			args: args{
+				currentBlock: func() strings.Builder {
+					var b strings.Builder
+					b.WriteString("Session started: user123")
+					return b
+				}(),
+				filters: FilterConfig{Contains: []string{"Session started", "Heartbeat OK"}},
+			},
+			expected: true,
+		},
+		{
+			name: "Block contains none of the filters",
+			args: args{
+				currentBlock: func() strings.Builder {
+					var b strings.Builder
+					b.WriteString("Some other message")
+					return b
+				}(),
+				filters: FilterConfig{Contains: []string{"Session started", "Heartbeat OK"}},
+			},
+			expected: false,
+		},
+		{
+			name: "Block contains filter as substring",
+			args: args{
+				currentBlock: func() strings.Builder {
+					var b strings.Builder
+					b.WriteString("xxxHeartbeat OKyyy")
+					return b
+				}(),
+				filters: FilterConfig{Contains: []string{"Session started", "Heartbeat OK"}},
+			},
+			expected: true,
+		},
+		{
+			name: "No filters provided",
+			args: args{
+				currentBlock: func() strings.Builder {
+					var b strings.Builder
+					b.WriteString("Session started: user123")
+					return b
+				}(),
+				filters: FilterConfig{Contains: []string{}},
+			},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := getIsBlockNeedsToFilter(tt.args.currentBlock, tt.args.filters)
+			if result != tt.expected {
+				t.Errorf("Expected %v, got %v", tt.expected, result)
+			}
+		})
 	}
 }
