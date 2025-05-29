@@ -49,7 +49,7 @@ func main() {
 	}
 }
 
-// Walks recusively through the directory with log files
+// Walks recursively through the directory with log files
 // Runs processing on each file
 func processFiles(inputDir *string, blocks *[]LogBlock, filters FilterConfig) {
 	err := filepath.WalkDir(*inputDir, func(path string, d os.DirEntry, err error) error {
@@ -68,7 +68,7 @@ func processFiles(inputDir *string, blocks *[]LogBlock, filters FilterConfig) {
 	}
 }
 
-// Reads file and devides it into message blocks
+// Reads file and divides it into message blocks
 // One block - one message
 // The result of this function is a list of message blocks
 func processFile(path string, blocks *[]LogBlock, filters FilterConfig) error {
