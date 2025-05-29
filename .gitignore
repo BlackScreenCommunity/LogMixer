@@ -30,3 +30,7 @@ go.work.sum
 __debug*
 
 *.log
+
+logmixer
+
+filter[s].yaml
