@@ -113,6 +113,8 @@ func processFile(path string, blocks *[]LogBlock, filters FilterConfig) error {
 	return scanner.Err()
 }
 
+// Checks if the current log block
+// contains any of the filter phrases
 func getIsBlockNeedsToFilter(currentBlock strings.Builder, filters FilterConfig) bool {
 	blockString := currentBlock.String()
 	for _, filterString := range filters.Contains {
