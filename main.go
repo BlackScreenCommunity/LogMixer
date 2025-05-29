@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strings"
 	"time"
@@ -29,11 +28,16 @@ var dateTemplate = "2006-01-02 15:04:05,000"
 func main() {
 	inputDir := flag.String("path", "./logs", "Path to directory with log files")
 	outputFile := flag.String("out", "combined_sorted.log", "Output file name")
-	filtersFilePath := flag.String("filters", UserHomeDir()+"/.config/logmixer/filters.yaml", "File with filtration rules")
+
+	currentDirectory, _ := os.Getwd()
+	filtersFilePath := flag.String("filters", currentDirectory+"/filters.yaml", "File with filtration rules")
+
 	flag.Parse()
 
 	var blocks []LogBlock
+
 	filters := getFilters(*filtersFilePath)
+
 	fmt.Println(filters)
 	processFiles(inputDir, &blocks, filters)
 	sortBlocksByTime(blocks)
@@ -121,9 +125,11 @@ func getIsBlockNeedsToFilter(currentBlock strings.Builder, filters FilterConfig)
 	return false
 }
 
+// Reads filters data from yaml file
+// And deserializes to a filters collection
 func getFilters(filterFilePath string) FilterConfig {
 	var filters FilterConfig
-	data := readFiltersConfigFile(filterFilePath)
+	data := readFile(filterFilePath)
 	err := yaml.Unmarshal([]byte(data), &filters)
 	if err != nil {
 		log.Fatalf("cannot unmarshal data: %v", err)
@@ -131,25 +137,16 @@ func getFilters(filterFilePath string) FilterConfig {
 	return filters
 }
 
-func readFiltersConfigFile(filterFilePath string) string {
+// Reads file from file system
+func readFile(filterFilePath string) string {
+	log.Printf("Trying to find and open filters file in directory: %s", filterFilePath)
 
-	yamlFile, err := os.ReadFile(filterFilePath)
+	fileContent, err := os.ReadFile(filterFilePath)
 	if err != nil {
 		log.Printf("Error while filters config file reading   #%v ", err)
 	}
 
-	return string(yamlFile)
-}
-
-func UserHomeDir() string {
-	if runtime.GOOS == "windows" {
-		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
-		if home == "" {
-			home = os.Getenv("USERPROFILE")
-		}
-		return home
-	}
-	return os.Getenv("HOME")
+	return string(fileContent)
 }
 
 // Defines is line from a text file is
