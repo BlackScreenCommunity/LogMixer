@@ -26,6 +26,18 @@ type FilterConfig struct {
 var dateTemplate = "2006-01-02 15:04:05,000"
 
 func main() {
+	inputDir, outputFile, filtersFilePath := prepareCommandLineArguments()
+
+	err := ProcessLogFiles(filtersFilePath, inputDir, outputFile)
+
+	if err != nil {
+		fmt.Printf("Error when saving result file  %s\n. %v", *outputFile, err)
+	}
+
+	fmt.Printf("Done. Written to %s\n", *outputFile)
+}
+
+func prepareCommandLineArguments() (*string, *string, *string) {
 	inputDir := flag.String("path", "./logs", "Path to directory with log files")
 	outputFile := flag.String("out", "combined_sorted.log", "Output file name")
 
@@ -33,20 +45,16 @@ func main() {
 	filtersFilePath := flag.String("filters", currentDirectory+"/filters.yaml", "File with filtration rules")
 
 	flag.Parse()
+	return inputDir, outputFile, filtersFilePath
+}
 
+func ProcessLogFiles(filtersFilePath *string, inputDir *string, outputFile *string) error {
 	var blocks []LogBlock
-
 	filters := getFilters(*filtersFilePath)
-
-	fmt.Println(filters)
 	processFiles(inputDir, &blocks, filters)
 	sortBlocksByTime(blocks)
 	err := writeCombinedLogFile(outputFile, &blocks)
-	if err == nil {
-		fmt.Printf("Done. Written to %s\n", *outputFile)
-	} else {
-		fmt.Printf("Error when saving result file  %s\n. %v", *outputFile, err)
-	}
+	return err
 }
 
 // Walks recursively through the directory with log files
@@ -202,7 +210,6 @@ func sortBlocksByTime(blocks []LogBlock) {
 func writeCombinedLogFile(outputFile *string, blocks *[]LogBlock) error {
 	out, err := os.Create(*outputFile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Cannot create output file: %v\n", err)
 		return err
 	}
 	defer out.Close()
