@@ -53,7 +53,7 @@ contains:
 	tmpFile.Close()
 
 	expected := FilterConfig{
-		Contains: []string{"Session started", "Heartbeat OK"},
+		Exclude: []string{"Session started", "Heartbeat OK"},
 	}
 
 	result := getFilters(tmpFile.Name())
@@ -81,7 +81,7 @@ func TestGetIsBlockNeedsToFilter(t *testing.T) {
 					b.WriteString("Session started: user123")
 					return b
 				}(),
-				filters: FilterConfig{Contains: []string{"Session started", "Heartbeat OK"}},
+				filters: FilterConfig{Exclude: []string{"Session started", "Heartbeat OK"}},
 			},
 			expected: true,
 		},
@@ -93,7 +93,7 @@ func TestGetIsBlockNeedsToFilter(t *testing.T) {
 					b.WriteString("Some other message")
 					return b
 				}(),
-				filters: FilterConfig{Contains: []string{"Session started", "Heartbeat OK"}},
+				filters: FilterConfig{Exclude: []string{"Session started", "Heartbeat OK"}},
 			},
 			expected: false,
 		},
@@ -105,7 +105,7 @@ func TestGetIsBlockNeedsToFilter(t *testing.T) {
 					b.WriteString("xxxHeartbeat OKyyy")
 					return b
 				}(),
-				filters: FilterConfig{Contains: []string{"Session started", "Heartbeat OK"}},
+				filters: FilterConfig{Exclude: []string{"Session started", "Heartbeat OK"}},
 			},
 			expected: true,
 		},
@@ -117,7 +117,7 @@ func TestGetIsBlockNeedsToFilter(t *testing.T) {
 					b.WriteString("Session started: user123")
 					return b
 				}(),
-				filters: FilterConfig{Contains: []string{}},
+				filters: FilterConfig{Exclude: []string{}},
 			},
 			expected: false,
 		},
