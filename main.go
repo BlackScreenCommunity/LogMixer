@@ -21,7 +21,7 @@ type LogBlock struct {
 
 type FilterConfig struct {
 	Exclude []string `yaml:"exclude"`
-	Inculde []string `yaml:include"`
+	Include []string `yaml:"include"`
 }
 
 var dateTemplate = "2006-01-02 15:04:05,000"
@@ -125,14 +125,34 @@ func processFile(path string, blocks *[]LogBlock, filters FilterConfig) error {
 // Checks if the current log block
 // contains any of the filter phrases
 func getIsBlockNeedsToFilter(currentBlock strings.Builder, filters FilterConfig) bool {
-	blockString := currentBlock.String()
-	for _, filterString := range filters.Exclude {
+	if len(filters.Exclude) == 0 && len(filters.Include) == 0 {
+		return true
+	}
 
-		if strings.Contains(blockString, filterString) {
+	blockString := currentBlock.String()
+
+	if len(filters.Exclude) > 0 && len(filters.Include) == 0 {
+		return getIsCollectionContainsString(filters.Exclude, blockString)
+	}
+
+	if len(filters.Exclude) > 0 && len(filters.Include) > 0 {
+		return getIsCollectionContainsString(filters.Exclude, blockString) && !getIsCollectionContainsString(filters.Include, blockString)
+	}
+
+	if len(filters.Exclude) == 0 && len(filters.Include) > 0 {
+		return !getIsCollectionContainsString(filters.Include, blockString)
+	}
+
+	return false
+}
+
+func getIsCollectionContainsString(stringCollection []string, substring string) bool {
+	for _, filterString := range stringCollection {
+
+		if strings.Contains(substring, filterString) {
 			return true
 		}
 	}
-
 	return false
 }
 
