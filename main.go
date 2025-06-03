@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -25,8 +26,10 @@ type FilterConfig struct {
 }
 
 var dateTemplate = "2006-01-02 15:04:05,000"
+var count = 0
 
 func main() {
+	start := time.Now()
 	inputDir, outputFile, filtersFilePath := prepareCommandLineArguments()
 
 	err := ProcessLogFiles(filtersFilePath, inputDir, outputFile)
@@ -35,6 +38,8 @@ func main() {
 		fmt.Printf("Error when saving result file  %s\n. %v", *outputFile, err)
 	}
 
+	elapsed := time.Since(start)
+	fmt.Printf("Time took %s ", elapsed)
 	fmt.Printf("Done. Written to %s\n", *outputFile)
 }
 
@@ -61,14 +66,20 @@ func ProcessLogFiles(filtersFilePath *string, inputDir *string, outputFile *stri
 // Walks recursively through the directory with log files
 // Runs processing on each file
 func processFiles(inputDir *string, blocks *[]LogBlock, filters FilterConfig) {
+	var wg sync.WaitGroup
+
 	err := filepath.WalkDir(*inputDir, func(path string, d os.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
 			return err
 		}
 		if strings.HasSuffix(d.Name(), ".log") || strings.HasSuffix(d.Name(), ".txt") {
+			wg.Add(1)
+
 			fmt.Printf("Processing %s\n", path)
-			return processFile(path, blocks, filters)
+			processFile(path, blocks, filters, &wg)
 		}
+
+		wg.Wait()
 		return nil
 	})
 	if err != nil {
@@ -80,9 +91,13 @@ func processFiles(inputDir *string, blocks *[]LogBlock, filters FilterConfig) {
 // Reads file and divides it into message blocks
 // One block - one message
 // The result of this function is a list of message blocks
-func processFile(path string, blocks *[]LogBlock, filters FilterConfig) error {
+func processFile(path string, blocks *[]LogBlock, filters FilterConfig, wg *sync.WaitGroup) error {
+
+	defer wg.Done()
+
 	file, err := os.Open(path)
 	if err != nil {
+
 		return fmt.Errorf("cannot open file %s: %w", path, err)
 	}
 	defer file.Close()
@@ -136,11 +151,18 @@ func getIsBlockNeedsToFilter(currentBlock strings.Builder, filters FilterConfig)
 	}
 
 	if len(filters.Exclude) > 0 && len(filters.Include) > 0 {
-		return getIsCollectionContainsString(filters.Exclude, blockString) && !getIsCollectionContainsString(filters.Include, blockString)
+		if !getIsCollectionContainsString(filters.Include, blockString) {
+			return true
+		} else {
+			return getIsCollectionContainsString(filters.Exclude, blockString)
+		}
 	}
 
 	if len(filters.Exclude) == 0 && len(filters.Include) > 0 {
-		return !getIsCollectionContainsString(filters.Include, blockString)
+		result := !getIsCollectionContainsString(filters.Include, blockString)
+		if result {
+			return result
+		}
 	}
 
 	return false
