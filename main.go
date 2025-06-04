@@ -141,7 +141,7 @@ func processFile(path string, blocks *[]LogBlock, filters FilterConfig, wg *sync
 // contains any of the filter phrases
 func getIsBlockNeedsToFilter(currentBlock strings.Builder, filters FilterConfig) bool {
 	if len(filters.Exclude) == 0 && len(filters.Include) == 0 {
-		return true
+		return false
 	}
 
 	blockString := currentBlock.String()

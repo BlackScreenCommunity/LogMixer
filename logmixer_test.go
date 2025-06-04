@@ -36,9 +36,11 @@ func TestWriteCombinedLogFile(t *testing.T) {
 func TestGetFilters_FromFile(t *testing.T) {
 
 	yamlContent := `
-contains:
+exclude:
   - Session started
   - Heartbeat OK
+include:
+  - FATAL
 `
 	tmpFile, err := os.CreateTemp("", "filters-*.yaml")
 	if err != nil {
@@ -54,6 +56,7 @@ contains:
 
 	expected := FilterConfig{
 		Exclude: []string{"Session started", "Heartbeat OK"},
+		Include: []string{"FATAL"},
 	}
 
 	result := getFilters(tmpFile.Name())
@@ -130,5 +133,21 @@ func TestGetIsBlockNeedsToFilter(t *testing.T) {
 				t.Errorf("Expected %v, got %v", tt.expected, result)
 			}
 		})
+	}
+}
+
+func BenchmarkGetIsCollectionContainsString(b *testing.B) {
+	collection := []string{
+		"Session started",
+		"Heartbeat OK",
+		"Agent connected",
+		"Plugin error",
+		"Timeout",
+		"Disconnected",
+	}
+	substring := "2025-06-03 20:50:00 Hearztbeat OK for agent #12"
+
+	for i := 0; i < b.N; i++ {
+		getIsCollectionContainsString(collection, substring)
 	}
 }
