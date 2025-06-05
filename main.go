@@ -117,6 +117,8 @@ func processFile(path string, blocks *[]LogBlock, filters FilterConfig, wg *sync
 			if currentBlock.Len() > 0 {
 				if !getIsBlockNeedsToFilter(currentBlock, filters) {
 					addBlockToCollection(blocks, currentTime, &currentBlock)
+				} else {
+					currentBlock.Reset()
 				}
 			}
 
