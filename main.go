@@ -170,9 +170,9 @@ func getIsBlockNeedsToFilter(currentBlock strings.Builder, filters FilterConfig)
 	return false
 }
 
+// Checks if the substring is contained in at least one element of the collection
 func getIsCollectionContainsString(stringCollection []string, substring string) bool {
 	for _, filterString := range stringCollection {
-
 		if strings.Contains(substring, filterString) {
 			return true
 		}
