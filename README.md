@@ -27,9 +27,11 @@ logmixer -path /путь/к/каталогу -out /путь/к/выходном�
 ### Пример файла с фильтрами
 
 ``` yaml
-contains:
+exclude:
   - Add new participant
   - Calendar ForEach
+include:
+  - FATAL
 ```
 
 ## Пример
