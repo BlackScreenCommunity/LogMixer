@@ -43,6 +43,7 @@ func main() {
 	fmt.Printf("Done. Written to %s\n", *outputFile)
 }
 
+// Parses application parameters 
 func prepareCommandLineArguments() (*string, *string, *string) {
 	inputDir := flag.String("path", "./logs", "Path to directory with log files")
 	outputFile := flag.String("out", "combined_sorted.log", "Output file name")
